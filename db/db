@@ -1,0 +1,119 @@
+#!/usr/bin/python3
+# -*- coding:utf-8 -*-
+
+import argparse
+import logging
+import pymysql
+import random
+import string
+from datetime import datetime
+
+
+LOG_FORMAT = "%(levelname)s %(asctime)s %(thread)d %(name)s\r\n%(message)s"
+logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
+parser = argparse.ArgumentParser()
+parser.add_argument("-ai", "--auto_increment", help="自增ID作为主键的插入行数", type=int)
+parser.add_argument("-rd", "--random", help="UUID作为主键的插入行数", type=int)
+parser.add_argument("-long", "--long_text", help="UUID作为主键的插入行数", type=int)
+parser.add_argument("-grd", "--get_random_id",
+                    help="获取一个随机ID", action="store_true")
+args = parser.parse_args()
+
+remark = """
+nameStr["borrower"] | valueStr{"age": 33, "bankCardNo": "", "bankMobile": "",
+"bornDate": 569606400000, "company": "贵州霸洁物业管理有限公司",
+"companyAddress": "贵州省贵阳市云岩区飞山街祥源大厦C幢1单元20层2号",
+"createDepartmentId": "a89198ca-f31b-43b7-b5e3-5498983c76fd",
+"createTime": 1599633261000, "creatorId": "67970b1a-b763-4b10-982c-759b770e9c06",
+"creatorName": "史琼睿", "creditLevel": 2, "creditLevelResult": "{\"msgCode\":,
+"""
+
+
+def getRandom32Id():
+    return "".join(random.sample(string.digits+string.ascii_letters, 32))
+
+
+def generateLongtextData():
+    conn = pymysql.connect("localhost", "root", "root", "dayloan_account")
+    cursor = conn.cursor()
+    items = args.long_text
+    start = datetime.now()
+    # 访问数据库
+    i = 0
+    while i < items:
+        try:
+            sql = "INSERT INTO `dayloan_account`.`client_text`(`id`, `name`, `cert_type`, `cert_id`, `publish_cert_org`, `cert_take_effect`, `cert_lose_effect`, `contact_address`, `type`, `contact_number_one`, `contact_number_two`, `org_code`, `all_in_one_cert_code`, `rm`, `remark`) VALUES (%s, '陶江航', 1, '522428199507081018', '贵州省毕节市赫章县公安局', '2020-11-05 10:31:05', '2020-11-05 10:31:14', '贵州省贵阳市云岩区三桥美的云熙府', 1, '18798624470', '15934567896', ' ', ' ', 0, %s)"
+            cursor.execute(sql, [getRandom32Id(), remark])
+            conn.commit()
+        except BaseException as error:
+            conn.rollback()
+            logging.error("保存随机ID数据发生异常:"+str(error))
+        i += 1
+    end = datetime.now()
+    logging.info(msg="保存{0}条随机ID数据,耗时{1}".format(
+        items, str((end-start).microseconds/1000)+"ms"))
+    return
+
+
+def generateRandomIdData():
+    conn = pymysql.connect("localhost", "root", "root", "dayloan_account")
+    cursor = conn.cursor()
+    items = args.random
+    start = datetime.now()
+    # 访问数据库
+    i = 0
+    while i < items:
+        try:
+            sql = "INSERT INTO `dayloan_account`.`client`(`id`, `name`, `cert_type`, `cert_id`, `publish_cert_org`, `cert_take_effect`, `cert_lose_effect`, `contact_address`, `type`, `contact_number_one`, `contact_number_two`, `org_code`, `all_in_one_cert_code`, `rm`, `remark`) VALUES (%s, '陶江航', 1, '522428199507081018', '贵州省毕节市赫章县公安局', '2020-11-05 10:31:05', '2020-11-05 10:31:14', '贵州省贵阳市云岩区三桥美的云熙府', 1, '18798624470', '15934567896', ' ', ' ', 0, '陶江航的备注信息')"
+            cursor.execute(sql, [getRandom32Id()])
+            conn.commit()
+        except BaseException as error:
+            conn.rollback()
+            logging.error("保存随机ID数据发生异常:"+str(error))
+        i += 1
+    return
+
+
+def generateAutoIncrementData():
+    conn = pymysql.connect("localhost", "root", "root", "dayloan_account")
+    cursor = conn.cursor()
+    items = args.auto_increment
+    i = 0
+    while i < items:
+        try:
+            sql = "INSERT INTO `dayloan_account`.`client_ai`(`name`, `cert_type`, `cert_id`, `publish_cert_org`, `cert_take_effect`, `cert_lose_effect`, `contact_address`, `type`, `contact_number_one`, `contact_number_two`, `org_code`, `all_in_one_cert_code`, `rm`, `remark`) VALUES ('陶江航', 1, '522428199507081018', '贵州省毕节市赫章县公安局', '2020-11-05 10:31:05', '2020-11-05 10:31:14', '贵州省贵阳市云岩区三桥美的云熙府', 1, '18798624470', '15934567896', ' ', ' ', 0, '陶江航的备注信息')"
+            cursor.execute(sql)
+            conn.commit()
+        except BaseException as error:
+            conn.rollback()
+            logging.error("保存自增ID数据发生异常:"+str(error))
+        i += 1
+    return items
+
+
+start = datetime.now()
+logging.info(msg="开始时间:{0}".format(start))
+if args.auto_increment and args.auto_increment > 0:
+    logging.info("生成自增数据开始")
+    items = generateAutoIncrementData()
+    end = datetime.now()
+    logging.info(msg="结束时间:{0}".format(end))
+    logging.info(msg="保存{0}条自增ID数据,耗时{1}".format(items, str((end-start).microseconds/1000)+"ms"))
+elif args.random and args.random > 0:
+    logging.info("生成随机数据开始")
+    items=generateRandomIdData()
+    end=datetime.now()
+    logging.info(msg="结束时间:{0}".format(end))
+    logging.info(msg="保存{0}条随机ID数据,耗时{1}".format(
+        items, str((end-start).microseconds/1000)+"ms"))
+elif args.get_random_id:
+    logging.info(msg=getRandom32Id())
+elif args.long_text and args.long_text > 0:
+    logging.info("生成text数据开始")
+    items=generateLongtextData()
+    end=datetime.now()
+    logging.info(msg="结束时间:{0}".format(end))
+    logging.info(msg="保存{0}条long-text数据,耗时{1}".format(
+        items, str((end-start).microseconds/1000)+"ms"))
+else:
+    logging.info("不支持的命令")
